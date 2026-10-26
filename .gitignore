@@ -1,0 +1,20 @@
+# Ghi chú hướng dẫn cá nhân
+HUONG_DAN.md
+
+# Build output
+/app
+/bin/
+*.exe
+*.test
+*.out
+
+# File export (bước 8)
+/exports/
+
+# Biến môi trường (DATABASE_URL, mật khẩu...)
+.env
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
