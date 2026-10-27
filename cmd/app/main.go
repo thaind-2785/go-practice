@@ -37,9 +37,11 @@ func main() {
 	deptRepo := repositories.NewPostgresDepartmentRepo(db)
 
 	empService := services.NewEmployeeService(empRepo, deptRepo)
+	deptService := services.NewDepartmentService(deptRepo, empRepo)
 
 	mux := http.NewServeMux()
 	handlers.NewEmployeeHandler(empService).RegisterRoutes(mux)
+	handlers.NewDepartmentHandler(deptService).RegisterRoutes(mux)
 
 	log.Println("server listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))

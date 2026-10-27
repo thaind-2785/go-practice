@@ -7,15 +7,16 @@ import (
 )
 
 type Employee struct {
-	ID           int64      `json:"id"`
-	Name         string     `json:"name"`
-	Age          int        `json:"age"`
-	Position     string     `json:"position"`
-	DepartmentID int64      `json:"departmentId"`
-	Salary       float64    `json:"salary"`
-	CreatedAt    time.Time  `json:"createdAt"`
-	UpdatedAt    time.Time  `json:"updatedAt"`
-	DeletedAt    *time.Time `json:"-"`
+	ID             int64      `json:"id"`
+	Name           string     `json:"name"`
+	Age            int        `json:"age"`
+	Position       string     `json:"position"`
+	DepartmentID   int64      `json:"departmentId"`
+	DepartmentName string     `json:"departmentName,omitempty"` // only set by queries that join departments
+	Salary         float64    `json:"salary"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
+	DeletedAt      *time.Time `json:"-"`
 }
 
 type CreateEmployeeRequest struct {

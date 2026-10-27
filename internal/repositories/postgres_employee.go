@@ -141,10 +141,37 @@ func (r *PostgresEmployeeRepo) Search(ctx context.Context, keyword string) ([]mo
 		keyword)
 }
 
+// ListByDepartment joins departments so every employee also carries its department name.
 func (r *PostgresEmployeeRepo) ListByDepartment(ctx context.Context, deptID int64) ([]models.Employee, error) {
-	return r.queryEmployees(ctx, "list employees by department",
-		`SELECT `+employeeColumns+` FROM employees WHERE deleted_at IS NULL AND department_id = $1 ORDER BY id`,
-		deptID)
+	const op = "list employees by department"
+	const query = `
+		SELECT e.id, e.name, e.age, e.position, e.department_id, e.salary, e.created_at, e.updated_at, d.name
+		FROM employees e
+		JOIN departments d ON d.id = e.department_id
+		WHERE e.department_id = $1 AND e.deleted_at IS NULL
+		ORDER BY e.id`
+
+	rows, err := r.db.QueryContext(ctx, query, deptID)
+	if err != nil {
+		return nil, mapPgError(op, err)
+	}
+	defer rows.Close()
+
+	var employees []models.Employee
+	for rows.Next() {
+		var e models.Employee
+		err := rows.Scan(&e.ID, &e.Name, &e.Age, &e.Position, &e.DepartmentID, &e.Salary,
+			&e.CreatedAt, &e.UpdatedAt, &e.DepartmentName)
+		if err != nil {
+			return nil, mapPgError(op, err)
+		}
+		employees = append(employees, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, mapPgError(op, err)
+	}
+
+	return employees, nil
 }
 
 func (r *PostgresEmployeeRepo) ListAll(ctx context.Context) ([]models.Employee, error) {

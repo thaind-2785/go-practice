@@ -265,12 +265,17 @@ func TestPostgresEmployeeRepo_Queries(t *testing.T) {
 		assertNames(t, got, []string{"Tran Thi Binh"})
 	})
 
-	t.Run("list by department", func(t *testing.T) {
+	t.Run("list by department joins the department name", func(t *testing.T) {
 		got, err := repo.ListByDepartment(ctx, eng.ID)
 		if err != nil {
 			t.Fatalf("ListByDepartment: %v", err)
 		}
 		assertNames(t, got, []string{"Nguyen Van An", "Le Van Cuong", "Pham Thi Dung"})
+		for _, e := range got {
+			if e.DepartmentName != "Engineering" {
+				t.Errorf("%s: DepartmentName = %q, want Engineering", e.Name, e.DepartmentName)
+			}
+		}
 	})
 
 	t.Run("list all skips deleted employees", func(t *testing.T) {

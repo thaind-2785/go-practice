@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"errors"
+	"strings"
+	"time"
+)
 
 type Department struct {
 	ID        int64     `json:"id"`
@@ -10,4 +14,12 @@ type Department struct {
 
 type CreateDepartmentRequest struct {
 	Name string `json:"name"`
+}
+
+func (r CreateDepartmentRequest) Validate() error {
+	if strings.TrimSpace(r.Name) == "" {
+		return errors.New("name cannot be empty")
+	}
+
+	return nil
 }
