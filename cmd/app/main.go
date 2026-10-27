@@ -3,14 +3,15 @@ package main
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/thaind-2785/go-practice/internal/utils"
+	"github.com/thaind-2785/go-practice/internal/handlers"
+	"github.com/thaind-2785/go-practice/internal/repositories"
+	"github.com/thaind-2785/go-practice/internal/services"
 )
 
 func main() {
@@ -26,17 +27,19 @@ func main() {
 	defer db.Close()
 	log.Println("database connected")
 
-	_ = db // tạm thời: bước 5 sẽ truyền db vào repository
+	ctx := context.Background()
+
+	empRepo, err := repositories.NewPostgresEmployeeRepo(ctx, db)
+	if err != nil {
+		log.Fatalf("init employee repository: %v", err)
+	}
+	defer empRepo.Close()
+	deptRepo := repositories.NewPostgresDepartmentRepo(db)
+
+	empService := services.NewEmployeeService(empRepo, deptRepo)
 
 	mux := http.NewServeMux()
-
-	mux.HandleFunc("GET /test-error", func(w http.ResponseWriter, r *http.Request) {
-		utils.WriteError(w, utils.NewNotFound("Employee not found"))
-	})
-
-	mux.HandleFunc("GET /test-unknown", func(w http.ResponseWriter, r *http.Request) {
-		utils.WriteError(w, errors.New("db password wrong"))
-	})
+	handlers.NewEmployeeHandler(empService).RegisterRoutes(mux)
 
 	log.Println("server listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
