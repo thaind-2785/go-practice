@@ -10,7 +10,6 @@ import (
 	"github.com/thaind-2785/go-practice/internal/utils"
 )
 
-// newTestService returns a service backed by fakes, with departments 1 (Engineering) and 2 (Sales).
 func newTestService(t *testing.T) (*EmployeeService, *fakeEmployeeRepo) {
 	t.Helper()
 	empRepo := newFakeEmployeeRepo()
@@ -42,7 +41,6 @@ func mustCreate(t *testing.T, svc *EmployeeService, req models.CreateEmployeeReq
 	return e
 }
 
-// assertCode checks that err is nil when wantCode is 0, otherwise an *AppError with that code.
 func assertCode(t *testing.T, err error, wantCode int) {
 	t.Helper()
 	if wantCode == 0 {
@@ -143,7 +141,6 @@ func TestEmployeeService_Get(t *testing.T) {
 
 func TestEmployeeService_List(t *testing.T) {
 	svc, _ := newTestService(t)
-	// 12 employees in department 1 and 3 in department 2.
 	for i := range 15 {
 		req := validCreateRequest()
 		if i >= 12 {

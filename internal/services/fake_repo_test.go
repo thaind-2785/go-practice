@@ -11,14 +11,11 @@ import (
 	"github.com/thaind-2785/go-practice/internal/repositories"
 )
 
-// Compile-time checks: the build fails if a fake is missing a method of the interface.
 var (
 	_ repositories.EmployeeRepository   = (*fakeEmployeeRepo)(nil)
 	_ repositories.DepartmentRepository = (*fakeDepartmentRepo)(nil)
 )
 
-// fakeEmployeeRepo is an in-memory EmployeeRepository used by service tests.
-// Setting err makes every method fail with it, which simulates a broken database.
 type fakeEmployeeRepo struct {
 	data   map[int64]models.Employee
 	nextID int64
@@ -132,7 +129,6 @@ func (f *fakeEmployeeRepo) ListAll(ctx context.Context) ([]models.Employee, erro
 	return f.active(), nil
 }
 
-// active returns non-deleted employees sorted by ID, because map iteration order is random.
 func (f *fakeEmployeeRepo) active() []models.Employee {
 	var result []models.Employee
 	for _, e := range f.data {
@@ -144,7 +140,6 @@ func (f *fakeEmployeeRepo) active() []models.Employee {
 	return result
 }
 
-// fakeDepartmentRepo is an in-memory DepartmentRepository used by service tests.
 type fakeDepartmentRepo struct {
 	data   map[int64]models.Department
 	nextID int64

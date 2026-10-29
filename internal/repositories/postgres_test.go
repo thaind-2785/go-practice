@@ -12,9 +12,6 @@ import (
 	"github.com/thaind-2785/go-practice/internal/models"
 )
 
-// These are integration tests against a real Postgres database.
-// They run only when TEST_DATABASE_URL is set (e.g. via `make test`) and wipe all tables in that database.
-
 func openTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 	dsn := os.Getenv("TEST_DATABASE_URL")

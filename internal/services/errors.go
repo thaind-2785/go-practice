@@ -8,8 +8,6 @@ import (
 	"github.com/thaind-2785/go-practice/internal/utils"
 )
 
-// mapRepoError translates storage errors into AppErrors that carry an HTTP code.
-// notFoundMsg is used when the repository reports ErrNotFound.
 func mapRepoError(err error, notFoundMsg string) error {
 	switch {
 	case errors.Is(err, repositories.ErrNotFound):
@@ -21,7 +19,6 @@ func mapRepoError(err error, notFoundMsg string) error {
 	case errors.Is(err, context.DeadlineExceeded):
 		return utils.NewServiceUnavailable("database timeout")
 	default:
-		// Unknown errors are passed through; WriteError logs them and returns a generic 500.
 		return err
 	}
 }

@@ -29,7 +29,6 @@ func (s *DepartmentService) Create(ctx context.Context, req models.CreateDepartm
 		return nil, utils.NewValidation(err.Error())
 	}
 
-	// Trim so "Engineering " and "Engineering" count as the same name for the UNIQUE constraint.
 	department := models.Department{Name: strings.TrimSpace(req.Name)}
 
 	if err := s.deptRepo.Create(ctx, &department); err != nil {
@@ -56,8 +55,6 @@ func (s *DepartmentService) List(ctx context.Context) ([]models.Department, erro
 }
 
 func (s *DepartmentService) ListEmployees(ctx context.Context, id int64) ([]models.Employee, error) {
-	// An empty employee list cannot tell "no employees yet" from "no such department",
-	// so check that the department exists first.
 	if _, err := s.deptRepo.GetByID(ctx, id); err != nil {
 		return nil, mapRepoError(err, departmentNotFoundMsg)
 	}

@@ -78,7 +78,6 @@ func (s *EmployeeService) List(ctx context.Context, f models.ListEmployeesFilter
 		return nil, mapRepoError(err, employeeNotFoundMsg)
 	}
 
-	// A nil slice is encoded as JSON null; clients expect [] when there are no results.
 	if employees == nil {
 		employees = []models.Employee{}
 	}
@@ -105,7 +104,6 @@ func (s *EmployeeService) Update(ctx context.Context, id int64, req models.Updat
 		}
 	}
 
-	// Only fields the client actually sent (non-nil) overwrite the stored values.
 	if req.Name != nil {
 		employee.Name = *req.Name
 	}

@@ -18,8 +18,10 @@ import (
 	"github.com/thaind-2785/go-practice/internal/services"
 )
 
-// requestTimeout is how long a single request may take before its database calls are cancelled.
-const requestTimeout = 3 * time.Second
+const (
+	requestTimeout = 3 * time.Second
+	exportDir      = "exports"
+)
 
 func main() {
 	dsn := os.Getenv("DATABASE_URL")
@@ -45,22 +47,23 @@ func main() {
 
 	empService := services.NewEmployeeService(empRepo, deptRepo)
 	deptService := services.NewDepartmentService(deptRepo, empRepo)
+	exportService := services.NewExportService(empRepo, exportDir)
 
 	mux := http.NewServeMux()
 	handlers.NewEmployeeHandler(empService).RegisterRoutes(mux)
 	handlers.NewDepartmentHandler(deptService).RegisterRoutes(mux)
+	handlers.NewExportHandler(exportService).RegisterRoutes(mux)
 
 	users, err := parseUsers(os.Getenv("AUTH_USERS"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Order matters: a request goes through these from top to bottom before reaching mux.
 	handler := middleware.Chain(mux,
-		middleware.RequestID,        // first, so every later log line has the request ID
-		middleware.Recover,          // catches panics from everything below
-		middleware.BasicAuth(users), // rejects unauthenticated requests early
-		middleware.Logging,          // inside BasicAuth, so it can log the user
+		middleware.RequestID,
+		middleware.Recover,
+		middleware.BasicAuth(users),
+		middleware.Logging,
 		middleware.Timeout(requestTimeout),
 	)
 
@@ -68,7 +71,6 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", handler))
 }
 
-// parseUsers reads AUTH_USERS in the form "alice:password1,bob:password2".
 func parseUsers(s string) (map[string]string, error) {
 	if s == "" {
 		return nil, errors.New("AUTH_USERS is not set")
@@ -78,7 +80,6 @@ func parseUsers(s string) (map[string]string, error) {
 	for i, pair := range strings.Split(s, ",") {
 		user, pass, ok := strings.Cut(strings.TrimSpace(pair), ":")
 		if !ok || user == "" || pass == "" {
-			// Report the position only, never the value: it contains a password.
 			return nil, fmt.Errorf("AUTH_USERS entry #%d must look like user:password", i+1)
 		}
 		users[user] = pass
@@ -93,12 +94,10 @@ func openDB(dsn string) (*sql.DB, error) {
 		return nil, err
 	}
 
-	// Connection pool: giới hạn số kết nối tới DB dùng cùng lúc
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(25)
 	db.SetConnMaxLifetime(5 * time.Minute)
 
-	// Thử kết nối thật, chờ tối đa 5 giây
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := db.PingContext(ctx); err != nil {

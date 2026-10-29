@@ -10,7 +10,6 @@ import (
 
 var _ EmployeeRepository = (*PostgresEmployeeRepo)(nil)
 
-// employeeColumns must stay in the same order as the Scan call in scanEmployee.
 const employeeColumns = "id, name, age, position, department_id, salary, created_at, updated_at"
 
 type PostgresEmployeeRepo struct {
@@ -18,8 +17,6 @@ type PostgresEmployeeRepo struct {
 	getByIDStmt *sql.Stmt
 }
 
-// NewPostgresEmployeeRepo prepares the statements the repository reuses on every request.
-// Call Close when the repository is no longer needed.
 func NewPostgresEmployeeRepo(ctx context.Context, db *sql.DB) (*PostgresEmployeeRepo, error) {
 	getByIDStmt, err := db.PrepareContext(ctx,
 		`SELECT `+employeeColumns+` FROM employees WHERE id = $1 AND deleted_at IS NULL`)
@@ -59,7 +56,6 @@ func (r *PostgresEmployeeRepo) GetByID(ctx context.Context, id int64) (*models.E
 }
 
 func (r *PostgresEmployeeRepo) List(ctx context.Context, f models.ListEmployeesFilter) ([]models.Employee, int, error) {
-	// When no department filter is given, $1 is NULL and the condition matches every row.
 	const where = `WHERE deleted_at IS NULL AND ($1::bigint IS NULL OR department_id = $1)`
 
 	var total int
@@ -83,11 +79,8 @@ func (r *PostgresEmployeeRepo) Update(ctx context.Context, e *models.Employee) e
 	if err != nil {
 		return mapPgError("update employee: begin", err)
 	}
-	// Rollback is a no-op once Commit has succeeded, so it is safe to always defer it.
 	defer tx.Rollback()
 
-	// FOR UPDATE locks the row: a concurrent Update or Delete of the same employee
-	// waits until this transaction commits or rolls back.
 	var id int64
 	err = tx.QueryRowContext(ctx,
 		`SELECT id FROM employees WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, e.ID).Scan(&id)
@@ -114,7 +107,6 @@ func (r *PostgresEmployeeRepo) Update(ctx context.Context, e *models.Employee) e
 	return nil
 }
 
-// Delete is a soft delete: the row stays in the table with deleted_at set.
 func (r *PostgresEmployeeRepo) Delete(ctx context.Context, id int64) error {
 	res, err := r.db.ExecContext(ctx,
 		`UPDATE employees SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL`, id)
@@ -141,7 +133,6 @@ func (r *PostgresEmployeeRepo) Search(ctx context.Context, keyword string) ([]mo
 		keyword)
 }
 
-// ListByDepartment joins departments so every employee also carries its department name.
 func (r *PostgresEmployeeRepo) ListByDepartment(ctx context.Context, deptID int64) ([]models.Employee, error) {
 	const op = "list employees by department"
 	const query = `
@@ -179,7 +170,6 @@ func (r *PostgresEmployeeRepo) ListAll(ctx context.Context) ([]models.Employee, 
 		`SELECT `+employeeColumns+` FROM employees WHERE deleted_at IS NULL ORDER BY id`)
 }
 
-// queryEmployees runs a query that returns employeeColumns and scans every row.
 func (r *PostgresEmployeeRepo) queryEmployees(ctx context.Context, op, query string, args ...any) ([]models.Employee, error) {
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -195,7 +185,6 @@ func (r *PostgresEmployeeRepo) queryEmployees(ctx context.Context, op, query str
 		}
 		employees = append(employees, e)
 	}
-	// rows.Next returns false both at the end and on failure; Err tells them apart.
 	if err := rows.Err(); err != nil {
 		return nil, mapPgError(op, err)
 	}
@@ -203,7 +192,6 @@ func (r *PostgresEmployeeRepo) queryEmployees(ctx context.Context, op, query str
 	return employees, nil
 }
 
-// rowScanner is satisfied by both *sql.Row and *sql.Rows.
 type rowScanner interface {
 	Scan(dest ...any) error
 }

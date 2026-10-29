@@ -12,7 +12,7 @@ type Employee struct {
 	Age            int        `json:"age"`
 	Position       string     `json:"position"`
 	DepartmentID   int64      `json:"departmentId"`
-	DepartmentName string     `json:"departmentName,omitempty"` // only set by queries that join departments
+	DepartmentName string     `json:"departmentName,omitempty"`
 	Salary         float64    `json:"salary"`
 	CreatedAt      time.Time  `json:"createdAt"`
 	UpdatedAt      time.Time  `json:"updatedAt"`

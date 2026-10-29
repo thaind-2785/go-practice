@@ -22,14 +22,12 @@ func NewDepartmentHandler(s DepartmentService) *DepartmentHandler {
 	return &DepartmentHandler{service: s}
 }
 
-// RegisterRoutes attaches every department endpoint to mux.
 func (h *DepartmentHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /departments", h.Create)
 	mux.HandleFunc("GET /departments", h.List)
 	mux.HandleFunc("GET /departments/{id}/employees", h.ListEmployees)
 }
 
-// POST /departments
 func (h *DepartmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateDepartmentRequest
 	if err := decodeJSON(w, r, &req); err != nil {
@@ -46,7 +44,6 @@ func (h *DepartmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusCreated, department)
 }
 
-// GET /departments
 func (h *DepartmentHandler) List(w http.ResponseWriter, r *http.Request) {
 	departments, err := h.service.List(r.Context())
 	if err != nil {
@@ -57,7 +54,6 @@ func (h *DepartmentHandler) List(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusOK, departments)
 }
 
-// GET /departments/{id}/employees
 func (h *DepartmentHandler) ListEmployees(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
 	if err != nil {

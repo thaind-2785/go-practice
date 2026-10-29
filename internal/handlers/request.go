@@ -16,8 +16,6 @@ func parseID(r *http.Request) (int64, error) {
 	return id, nil
 }
 
-// queryInt reads an integer query parameter such as ?limit=10.
-// A missing parameter returns 0 without error; a non-numeric one returns 400.
 func queryInt(r *http.Request, key string) (int64, error) {
 	raw := r.URL.Query().Get(key)
 	if raw == "" {

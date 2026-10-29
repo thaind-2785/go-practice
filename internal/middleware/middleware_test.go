@@ -11,7 +11,6 @@ import (
 	"time"
 )
 
-// captureLogs redirects the standard logger into a buffer for the duration of the test.
 func captureLogs(t *testing.T) *bytes.Buffer {
 	t.Helper()
 	original := log.Writer()
@@ -21,7 +20,6 @@ func captureLogs(t *testing.T) *bytes.Buffer {
 	return &buf
 }
 
-// assertJSONError checks that the response is {"error": ..., "code": wantCode} with that status.
 func assertJSONError(t *testing.T, rec *httptest.ResponseRecorder, wantCode int) {
 	t.Helper()
 	if rec.Code != wantCode {
