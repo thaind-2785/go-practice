@@ -8,7 +8,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -19,28 +21,39 @@ import (
 )
 
 const (
-	requestTimeout = 3 * time.Second
-	exportDir      = "exports"
+	addr            = ":8080"
+	requestTimeout  = 3 * time.Second
+	shutdownTimeout = 10 * time.Second
+	exportDir       = "exports"
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		log.Fatal("DATABASE_URL is not set")
+		return errors.New("DATABASE_URL is not set")
+	}
+
+	users, err := parseUsers(os.Getenv("AUTH_USERS"))
+	if err != nil {
+		return err
 	}
 
 	db, err := openDB(dsn)
 	if err != nil {
-		log.Fatalf("connect database: %v", err)
+		return fmt.Errorf("connect database: %w", err)
 	}
 	defer db.Close()
 	log.Println("database connected")
 
-	ctx := context.Background()
-
-	empRepo, err := repositories.NewPostgresEmployeeRepo(ctx, db)
+	empRepo, err := repositories.NewPostgresEmployeeRepo(context.Background(), db)
 	if err != nil {
-		log.Fatalf("init employee repository: %v", err)
+		return fmt.Errorf("init employee repository: %w", err)
 	}
 	defer empRepo.Close()
 	deptRepo := repositories.NewPostgresDepartmentRepo(db)
@@ -54,11 +67,6 @@ func main() {
 	handlers.NewDepartmentHandler(deptService).RegisterRoutes(mux)
 	handlers.NewExportHandler(exportService).RegisterRoutes(mux)
 
-	users, err := parseUsers(os.Getenv("AUTH_USERS"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	handler := middleware.Chain(mux,
 		middleware.RequestID,
 		middleware.Recover,
@@ -67,8 +75,40 @@ func main() {
 		middleware.Timeout(requestTimeout),
 	)
 
-	log.Println("server listening on :8080")
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	serverErr := make(chan error, 1)
+	go func() {
+		log.Printf("server listening on %s", srv.Addr)
+		serverErr <- srv.ListenAndServe()
+	}()
+
+	select {
+	case err := <-serverErr:
+		return fmt.Errorf("listen: %w", err)
+	case <-ctx.Done():
+	}
+	stop()
+
+	log.Println("shutting down, waiting for in-flight requests")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("shutdown: %w", err)
+	}
+
+	log.Println("server stopped")
+	return nil
 }
 
 func parseUsers(s string) (map[string]string, error) {
